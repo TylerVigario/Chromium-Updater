@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 11
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chromium Updater", "Chromium Updater.csproj", "{7DC30D7A-1E1C-408F-90DA-1BDD07D6AE37}"
+EndProject
+Global
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccLocalPath0 = .
+		SccLocalPath1 = .
+		SccNumberOfProjects = 2
+		SccProjectUniqueName1 = Chromium\u0020Updater.csproj
+		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs17
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7DC30D7A-1E1C-408F-90DA-1BDD07D6AE37}.Debug|x86.ActiveCfg = Debug|x86
+		{7DC30D7A-1E1C-408F-90DA-1BDD07D6AE37}.Debug|x86.Build.0 = Debug|x86
+		{7DC30D7A-1E1C-408F-90DA-1BDD07D6AE37}.Release|x86.ActiveCfg = Release|x86
+		{7DC30D7A-1E1C-408F-90DA-1BDD07D6AE37}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

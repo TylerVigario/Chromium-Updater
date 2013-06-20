@@ -1,0 +1,64 @@
+﻿using System;
+using System.ComponentModel;
+using System.Net;
+using System.Reflection;
+using System.Windows.Forms;
+using System.Diagnostics;
+
+namespace Chromium_Updater
+{
+    public delegate void updateAvailable(bool availableUpdate);
+
+    public class AutoDownloader
+    {
+        private string check_url    = "http://tlokzz.info/updater/api/update.php?action=latest_version&app_id=";
+        private string download_url = "http://tlokzz.info/updater/api/download.php?app_id=";
+        //
+        WebClient downloader;
+        //
+        public event updateAvailable doneChecking;
+
+        public AutoDownloader(int app_id)
+        {
+            check_url    += app_id;
+            download_url += app_id;
+            //
+            downloader = new WebClient();
+            downloader.DownloadStringCompleted += new DownloadStringCompletedEventHandler(downloader_DownloadStringCompleted);
+            //downloader.DownloadProgressChanged += new DownloadProgressChangedEventHandler(downloader_DownloadProgressChanged);
+            downloader.DownloadFileCompleted += new AsyncCompletedEventHandler(downloader_DownloadFileCompleted);
+        }
+
+        public void checkForUpdate()
+        {
+            downloader.DownloadStringAsync(new Uri(check_url));
+        }
+
+        public void downloadUpdate()
+        {
+            downloader.DownloadFileAsync(new Uri(download_url), Application.StartupPath + "\\cu_update.exe");
+        }
+
+        private void downloader_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
+        {
+            try
+            {
+                Version localVersion  = Version.Parse(Application.ProductVersion);
+                Version remoteVersion = Version.Parse(e.Result.ToString());
+                if (remoteVersion > localVersion) { doneChecking(true); }
+                else { doneChecking(false); }
+            }
+            catch { doneChecking(false); }
+        }
+
+        /*private void downloader_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+        }*/
+
+        private void downloader_DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo(Application.StartupPath + "\\updaterSwitcher.exe", "-source " + '"' + Application.StartupPath + "\\cu_update.exe" + '"' + " -destination " + '"' + Application.StartupPath + "\\Chromium Updater.exe" + '"'));
+            Environment.Exit(0);
+        }
+    }
+}

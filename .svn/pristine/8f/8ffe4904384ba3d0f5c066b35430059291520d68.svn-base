@@ -1,0 +1,7 @@
+[Settings]
+Current_Revision=0
+Start_Hidden=0
+Auto_Download=0
+Latest_Revision_URL=http://commondatastorage.googleapis.com/chromium-browser-continuous/Win/LAST_CHANGE
+Specific_Revision_URL=http://commondatastorage.googleapis.com/chromium-browser-continuous/Win/
+Update_Frequency=60

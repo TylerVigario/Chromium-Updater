@@ -1,0 +1,358 @@
+﻿using System;
+using System.ComponentModel;
+using System.Net;
+using System.Threading;
+using System.Windows.Forms;
+
+namespace Chromium_Updater
+{
+    public partial class MainForm : Form
+    {
+        Updater updaterWorker;
+        AutoDownloader selfUpdater;
+        //
+        private delegate void changeButtonD(string value, bool enabled);
+        private delegate void changeValueD(string value);
+
+        public MainForm(string[] args)
+        {
+            InitializeComponent();
+            //
+            SettingsManager.load();
+            if (args.Length > 0)
+            {
+                IniFile cuu = new IniFile(args[0]);
+                new CUU(cuu.GetString("urls", "latest_revision_url", ""), cuu.GetString("urls", "specific_revision_url", "")).Show();
+                cuu = null;
+            }
+        }
+
+        #region Form Events
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            if (SettingsManager.start_hidden)
+            {
+                this.WindowState = FormWindowState.Minimized;
+            }
+            //
+            selfUpdater = new AutoDownloader(1);
+            selfUpdater.doneChecking += new updateAvailable(selfUpdater_doneChecking);
+            selfUpdater.checkForUpdate();
+            //
+            updaterWorker = new Updater();
+            updaterWorker.checkCompleted += new updateCheckCompleted(updaterWorker_checkCompleted);
+            updaterWorker.progressChanged += new downloadProgressChanged(updaterWorker_progressChanged);
+            updaterWorker.fileDownloaded += new downloadFileCompleted(updaterWorker_fileDownloaded);
+            updaterWorker.finished += new installFinished(updaterWorker_finished);
+            //
+            label4.Text = SettingsManager.current_revision;
+            //
+            if (!FileAssociation.IsAssociated(".cuu"))
+            {
+                FileAssociation.Associate(".cuu", "Chromium Updater", "Updater URLS", "", Application.ExecutablePath);
+            }
+            //
+            beginUpdate();
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if ((updaterWorker.isBusy) && (MessageBox.Show("You are currently in the process of updating. Are you sure you want to exit?", "Chromium Updater", MessageBoxButtons.YesNo) == DialogResult.No))
+            {
+                e.Cancel = true;
+            }
+            else
+            {
+                notifyIcon1.Dispose();
+                Environment.Exit(0);
+            }
+        }
+
+        private void selfUpdater_doneChecking(bool availableUpdate)
+        {
+            if ((availableUpdate) && (MessageBox.Show("There is an update available for Chromium Updater. Would you like to update now?", "Chromium Updater", MessageBoxButtons.YesNo) == DialogResult.Yes))
+            {
+                selfUpdater.downloadUpdate();
+            }
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Settings setsF = new Settings();
+            setsF.Show();
+        }
+
+        private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            button2_Click(this, null);
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (button1.Text == "Check" || button1.Text == "Update")
+            {
+                beginUpdate();
+            }
+            else if (button1.Text == "Download")
+            {
+                beginDownload();
+            }
+            else if (button1.Text == "Reinstall")
+            {
+                beginInstall();
+            }
+            else
+            {
+                MessageBox.Show("Gee whitaker Batman! How the french toast did this happen? Email me details @ TylerVigario90@gmail.com");
+            }
+        }
+
+        private void updateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            button1_Click(this, null);
+        }
+
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Minimized)
+            {
+                this.Opacity = 0;
+                this.ShowInTaskbar = false;
+                this.notifyIcon1.Visible = true;
+            }
+        }
+
+        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            this.WindowState = FormWindowState.Normal;
+            this.ShowInTaskbar = true;
+            this.Opacity = 100;
+            this.notifyIcon1.Visible = false;
+            this.BringToFront();
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            beginUpdate();
+        }
+
+        #endregion
+
+        #region Update Processor
+
+        #region Updater
+
+        private void beginUpdate()
+        {
+            changeButton("Checking", false);
+            toolStripStatusLabel1.Visible = false;
+            DownloadStartResult r = updaterWorker.checkForUpdateAsync();
+            if (r == DownloadStartResult.NoInternet)
+            {
+                if (MessageBox.Show("You are not connected to the internet at the moment. Would you like to close Chromium Updater for now?", "Chromium Updater", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+                {
+                    this.Close();
+                }
+                changeButton("Check", true);
+            }
+            else if (r == DownloadStartResult.NetError)
+            {
+                MessageBox.Show("There seems to be a problem with the internet or the Latest Revision URL is invalid.");
+                changeButton("Check", true);
+            }
+            else if (r == DownloadStartResult.InvalidURL)
+            {
+                if (MessageBox.Show("The Latest Revision URL is invalid. Would you like to correct it now?", "Chromium Updater", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    button2_Click(this, null);
+                }
+                changeButton("Check", true);
+            }
+            else if (r == DownloadStartResult.Busy)
+            {
+                MessageBox.Show("How did you get here? Email me about it @ TylerVigario90@gmail.com");
+                changeButton("Check", false);
+            }
+        }
+
+        private void updaterWorker_checkCompleted(CheckResult r)
+        {
+
+            if (r == CheckResult.UpdateAvailable)
+            {
+                changeLatestVersion(updaterWorker.latestRevision);
+                if (SettingsManager.auto_download)
+                {
+                    beginDownload();
+                }
+                else { changeButton("Download", true); }
+            }
+            else if (r == CheckResult.NoUpdateAvailable)
+            {
+                changeLatestVersion(updaterWorker.latestRevision);
+                changeButton("Reinstall", true);
+            }
+            else if (r == CheckResult.Error)
+            {
+                MessageBox.Show("How did you get here? Email me about it @ TylerVigario90@gmail.com");
+            }
+            toolStripStatusLabel1.Text = "";
+            toolStripStatusLabel1.Visible = true;
+            toolStripProgressBar1.Value = 0;
+            toolStripProgressBar1.Visible = false;
+        }
+
+        #endregion
+
+        #region Downloader
+
+        private void beginDownload()
+        {
+            changeButton("Downloading", false);
+            toolStripProgressBar1.Visible = true;
+            DownloadStartResult r = updaterWorker.downloadUpdateAsync();
+            if (r == DownloadStartResult.NoInternet)
+            {
+                if (MessageBox.Show("You are not connected to the internet at the moment. Would you like to close Chromium Updater for now?", "Chromium Updater", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+                {
+                    this.Close();
+                }
+                changeButton("Check", true);
+            }
+            else if (r == DownloadStartResult.NetError)
+            {
+                MessageBox.Show("There seems to be a problem with the internet or the Latest Revision URL is invalid.");
+                changeButton("Check", true);
+            }
+            else if (r == DownloadStartResult.InvalidURL)
+            {
+                if (MessageBox.Show("The Latest Revision URL is invalid. Would you like to correct it now?", "Chromium Updater", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    button2_Click(this, null);
+                }
+                changeButton("Check", true);
+            }
+            else if (r == DownloadStartResult.Busy)
+            {
+                MessageBox.Show("How did you get here? Email me about it @ TylerVigario90@gmail.com");
+                changeButton("Check", true);
+            }
+        }
+
+        private void updaterWorker_progressChanged(DownloadProgressChangedEventArgs e)
+        {
+            toolStripProgressBar1.Value = e.ProgressPercentage;
+            toolStripStatusLabel1.Text = e.ProgressPercentage.ToString() + "%";
+        }
+
+        private void updaterWorker_fileDownloaded(DownloadResult r)
+        {
+            if (r == DownloadResult.Success)
+            {
+                toolStripStatusLabel1.Text = "Revision " + '"' + updaterWorker.latestRevision + '"' + " downloaded succesfully";
+                beginInstall();
+            }
+            else if (r == DownloadResult.Error)
+            {
+                MessageBox.Show("How did you get here? Email me about it @ TylerVigario90@gmail.com");
+                changeButton("Check", true);
+            }
+            toolStripStatusLabel1.Text = "";
+            toolStripProgressBar1.Value = 0;
+            toolStripProgressBar1.Visible = false;
+        }
+
+        #endregion
+
+        #region Installer
+
+        private void beginInstall()
+        {
+            changeButton("Installing", false);
+            InstallStartResult r = updaterWorker.installUpdate();
+            if (r == InstallStartResult.ChromiumRunning)
+            {
+                MessageBox.Show("Update could not be installed because Chromium is running.");
+                changeButton("Install", true);
+            }
+        }
+
+        private void updaterWorker_finished(InstallResult r)
+        {
+            if (r == InstallResult.Success)
+            {
+                changeLocalVersion(updaterWorker.latestRevision);
+                changeStatusText("Revision " + '"' + updaterWorker.latestRevision + '"' + " installed succesfully");
+                changeButton("Reinstall", true);
+            }
+            else if (r == InstallResult.Error)
+            {
+                changeStatusText("Revision " + '"' + updaterWorker.latestRevision + '"' + " installed succesfully");
+                changeButton("Check", true);
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Delegated Functions
+
+        private void changeButton(string value, bool enabled)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new changeButtonD(changeButton), new object[] { value, enabled });
+                return;
+            }
+            //
+            button1.Text = value;
+            button1.Enabled = enabled;
+            //
+            updateToolStripMenuItem.Text = value;
+            updateToolStripMenuItem.Enabled = enabled;
+        }
+
+        private void changeLocalVersion(string value)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new changeValueD(changeLocalVersion), new object[] { value });
+                return;
+            }
+            //
+            SettingsManager.current_revision = value;
+            label4.Text = value;
+        }
+
+        private void changeLatestVersion(string value)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new changeValueD(changeLatestVersion), new object[] { value });
+                return;
+            }
+            //
+            label6.Text = value;
+        }
+
+        private void changeStatusText(string value)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new changeValueD(changeStatusText), new object[] { value });
+                return;
+            }
+            //
+            toolStripStatusLabel1.Text = value;
+        }
+
+        #endregion
+    }
+}

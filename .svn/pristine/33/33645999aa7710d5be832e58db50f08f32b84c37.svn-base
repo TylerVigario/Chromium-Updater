@@ -1,0 +1,7 @@
+[Settings]
+Latest_Revision_URL=http://build.chromium.org/f/chromium/snapshots/Win_Webkit_Latest/LATEST
+Specific_Revision_URL=http://build.chromium.org/f/chromium/snapshots/Win_Webkit_Latest/
+Start_Hidden=0
+Update_Frequency=60
+Current_Revision=0
+Download_Dir=

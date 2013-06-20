@@ -1,0 +1,213 @@
+﻿using System;
+using System.IO;
+using System.Windows.Forms;
+using System.Net;
+
+namespace Chromium_Updater
+{
+    class SettingsManager
+    {
+        private static IniFile ini;
+
+        public static void load()
+        {
+            string path = Application.StartupPath + "\\settings.ini";
+            if (!File.Exists(path)) { File.Create(path); }
+            ini = new IniFile(path);
+        }
+
+        #region Chromium Updater URLs
+
+        private static string lru;
+        private static string sru;
+
+        public static string latest_revision_url
+        {
+            get 
+            {
+                if (String.IsNullOrEmpty(lru))
+                {
+                    lru = ini.GetString("Settings", "Latest_Revision_URL", "http://commondatastorage.googleapis.com/chromium-browser-continuous/Win/LAST_CHANGE");
+                }
+                return lru;
+            }
+            set
+            {
+                lru = value;
+                ini.WriteValue("Settings", "Latest_Revision_URL", value);
+            }
+        }
+
+        public static string specific_revision_url
+        {
+            get 
+            {
+                if (String.IsNullOrEmpty(sru))
+                {
+                    sru = ini.GetString("Settings", "Specific_Revision_URL", "http://commondatastorage.googleapis.com/chromium-browser-continuous/Win/");
+                }
+                return sru;
+            }
+            set
+            {
+                sru = value;
+                ini.WriteValue("Settings", "Specific_Revision_URL", value);
+            }
+        }
+
+        public static bool validLatestURL(string url)
+        {
+            if (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
+            {
+                try
+                {
+                    string data = new WebClient().DownloadString(url);
+                    Convert.ToInt32(data.Trim());
+                    return true;
+                }
+                catch { return false; }
+            }
+            return false;
+        }
+
+        public static bool validSpecificURL(string url)
+        {
+            if (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
+
+        #region Start Hidden
+
+        private static int sh  = -1;
+
+        public static bool start_hidden
+        {
+            get
+            {
+                if (sh < 0) { sh = ini.GetInt32("Settings", "Start_Hidden", 0); }
+                return Convert.ToBoolean(sh);
+            }
+            set
+            {
+                sh = Convert.ToInt32(value);
+                ini.WriteValue("Settings", "Start_Hidden", Convert.ToInt32(value));
+            }
+        }
+
+        #endregion
+
+        #region Update Check Frequency
+
+        private static int uf = -1;
+
+        public static int update_frequency
+        {
+            get
+            {
+                if (uf < 0) { uf = ini.GetInt32("Settings", "Update_Frequency", 60); }
+                return uf;
+            }
+            set
+            {
+                uf = value;
+                ini.WriteValue("Settings", "Update_Frequency", value);
+            }
+        }
+
+        #endregion
+
+        #region Current Revision
+
+        private static string cr;
+
+        public static string current_revision
+        {
+            get
+            {
+                if (String.IsNullOrEmpty(cr)) { cr = ini.GetString("Settings", "Current_Revision", "0"); }
+                return cr;
+            }
+            set
+            {
+                cr = value;
+                ini.WriteValue("Settings", "Current_Revision", value);
+            }
+        }
+
+        #endregion
+
+        #region Installer Timeout
+
+        private static int it = -1;
+
+        public static int installer_timeout
+        {
+            get
+            {
+                if (it < 0) { it = ini.GetInt32("Settings", "Installer_Timeout", 300); }
+                return it;
+            }
+            set
+            {
+                it = value;
+                ini.WriteValue("Settings", "Installer_Timeout", value);
+            }
+        }
+
+        #endregion
+
+        #region Download Directory
+
+        private static string dd;
+
+        public static string download_dir
+        {
+            get
+            {
+                if (String.IsNullOrEmpty(dd))
+                {
+                    dd = ddConvert(ini.GetString("Settings", "Download_Directory", "%CURRENT_DIR%/Downloads"));
+                } 
+                return dd;
+            }
+            set
+            {
+                dd = ddConvert(value);
+                ini.WriteValue("Settings", "Download_Directory", value);
+            }
+        }
+
+        private static string ddConvert(string dd)
+        {
+            dd = dd.Replace("%CURRENT_DIR%", Application.StartupPath);
+            return dd;
+        }
+
+        #endregion
+
+        #region Auto Download
+
+        private static int ad = -1;
+
+        public static bool auto_download
+        {
+            get
+            {
+                if (ad < 0) { ad = ini.GetInt32("Settings", "Auto_Download", 0); }
+                return Convert.ToBoolean(ad);
+            }
+            set
+            {
+                ad = Convert.ToInt32(value);
+                ini.WriteValue("Settings", "Auto_Download", Convert.ToInt32(value));
+            }
+        }
+
+        #endregion
+    }
+}
