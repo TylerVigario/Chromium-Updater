@@ -12,6 +12,7 @@ namespace Chromium_Updater
         //
         private bool valid_latest = true;
         private bool valid_specific = true;
+        private bool valid_input = false;
 
         public SettingsForm()
         {
@@ -204,5 +205,14 @@ namespace Chromium_Updater
         }
 
         #endregion
+
+        private void textBox1_TextChanged_1(object sender, EventArgs e)
+        {
+            if (textBox1.Text != "What You Want" || textBox1.Text != "Anything Else You Would Want")
+            {
+                textBox1.Focus();
+            }
+            else { valid_input = true; }
+        }
     }
 }

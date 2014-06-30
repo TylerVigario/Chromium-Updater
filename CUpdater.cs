@@ -140,7 +140,7 @@ namespace Chromium_Updater
                 }
                 else
                 {
-                    if (CloseChromiumForm.closeChromium()) { /*new Thread(new ThreadStart(*/installerWatcher();/*)).Start();*/ }
+                    if (CloseChromiumForm.closeChromium()) { installerWatcher(); }
                     else { installReturn(InstallResult.ChromiumRunning); }
                 }
             }

@@ -29,12 +29,16 @@ namespace Chromium_Updater
 
         private void button1_Click(object sender, EventArgs e)
         {
+            timer1.Stop();
+            timer1.Dispose();
             CloseReturn(closeChromium());
             this.Close();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
+            timer1.Stop();
+            timer1.Dispose();
             CloseReturn(false);
             this.Close();
         }
@@ -49,8 +53,7 @@ namespace Chromium_Updater
         {
             get
             {
-                Process[] procs = Process.GetProcessesByName("chrome");
-                foreach (Process proc in procs) { return true; }
+                if (Process.GetProcessesByName("chrome").Length > 0) { return true; }
                 return false;
             }
         }
